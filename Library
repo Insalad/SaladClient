@@ -1,0 +1,2 @@
+local version = 0.1
+print("Inside library") --placeholder (again) lol
