@@ -1,1 +1,2 @@
+local version = 0.1
 print("Inside bedwars game") --placeholder moment lol
