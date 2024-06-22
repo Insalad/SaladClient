@@ -1,0 +1,123 @@
+local MS = game:GetService("MarketplaceService")
+local mainfolder = "SaladClient"
+
+function downloadcontent(url, filepath)
+    local content = game:HttpGet(url)
+    if content then
+        writefile(filepath, content)
+        return content
+    else
+        warn("Failed to get content from " .. url)
+    end
+end
+
+if not isfolder(mainfolder) then
+    makefolder(mainfolder)
+end
+
+local subfolders = {"Games DTC", "Keybinds", "Modules", "Toggles", "Sliders", "Minitoggles"}
+local modules = {
+    "Bedwars Game.lua",
+    "Bedwars Lobby.lua",
+    "MM2.lua",
+    "Universal.lua",
+    "ClickerMadness.lua",
+    "Library.lua"
+}
+
+for _, subfolder in ipairs(subfolders) do
+    local subfolderpath = mainfolder .. "/" .. subfolder
+    if not isfolder(subfolderpath) then
+        makefolder(subfolderpath)
+    end
+end
+
+local githuburls = {
+    ["Bedwars Game.lua"] = "https://raw.githubusercontent.com/Insalad/SaladClient/main/Bedwars%20Game",
+    ["Bedwars Lobby.lua"] = "https://raw.githubusercontent.com/Insalad/SaladClient/main/Bedwars%20Lobby",
+    ["ClickerMadness.lua"] = "https://raw.githubusercontent.com/Insalad/SaladClient/main/ClickerMadness",
+    ["MM2.lua"] = "https://raw.githubusercontent.com/Insalad/SaladClient/main/MM2",
+    ["Universal.lua"] = "https://raw.githubusercontent.com/Insalad/SaladClient/main/Universal",
+    ["Library.lua"] = "https://raw.githubusercontent.com/Insalad/SaladClient/main/Library"
+}
+
+local modulespath = mainfolder .. "/Modules"
+for _, module in ipairs(modules) do
+    local modulepath = modulespath .. "/" .. module
+    local url = githuburls[module]
+    if url then
+        local localversion = 0
+        if isfile(modulepath) then
+            local filecontent = readfile(modulepath)
+            local localversionstring = filecontent:match('local%s+version%s*=%s*"(.-)"') or filecontent:match('local%s+version%s*=%s*(%d+%.?%d*)') or "0"
+            localversion = tonumber(localversionstring) or 0
+        end
+
+        local githubcontent = game:HttpGet(url)
+        local githubversionstring = githubcontent:match('local%s+version%s*=%s*"(.-)"') or githubcontent:match('local%s+version%s*=%s*(%d+%.?%d*)') or "0"
+        local githubversion = tonumber(githubversionstring) or 0
+
+        if githubversion > localversion then
+            downloadcontent(url, modulepath)
+        end
+    else
+        warn("No URL found " .. module)
+    end
+end
+
+function removecharacters(str)
+    return str:gsub("[^a-zA-Z0-9 _-]", "")
+end
+
+local suc, info = pcall(function()
+    return MS:GetProductInfo(game.PlaceId)
+end)
+
+if suc and info then
+    local gamename = removecharacters(info.Name)
+    local filepath = "SaladClient/Games DTC/" .. gamename .. ".txt"
+    local content = tostring(game.PlaceId)
+
+    local suc, err = pcall(function()
+        writefile(filepath, content)
+    end)
+
+    if not suc then
+        warn("Failed to write game info to file. Error:", err)
+    end
+else
+    warn("Failed to fetch game info. Error:", info)
+end
+
+local games = {
+    [5490351219] = "ClickerMadness",
+    [142823291] = "MM2",
+    [6872265039] = "Bedwars Lobby",
+    [8444591321] = "Bedwars Game",
+    [8560631822] = "Bedwars Game",
+    [8560631822] = "Bedwars Game",
+    [8444591321] = "Bedwars Game"
+}
+
+function execute(modulename)
+    local path = "SaladClient/Modules/" .. modulename .. ".lua"
+
+    if isfile(path) then
+        local content = readfile(path)
+        local execute, loaderr = loadstring(content)
+
+        if execute then
+            local succ, err = pcall(execute)
+            if not succ then
+                warn("Failed to execute " .. modulename .. ". Error: " .. err)
+            end
+        else
+            warn("Failed to compile " .. modulename .. ". Error: " .. loaderr .. ". The content was: " .. content)
+        end
+    else
+        warn(modulename .. " doesn't exist. Path: " .. path)
+    end
+end
+
+local toexec = games[game.PlaceId] or "Universal"
+execute(toexec)
